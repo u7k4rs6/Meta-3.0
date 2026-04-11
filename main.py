@@ -13,10 +13,10 @@ load_dotenv()
 # ── Config ──────────────────────────────────────────────────────────────────
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
-    print("⚠️  CRITICAL: Target GEMINI_API_KEY environment variable not found. Please set it in your .env file.")
+    print("⚠️  CRITICAL: GEMINI_API_KEY not found. Please set it in your .env file.")
     sys.exit(1)
 
-GEMINI_MODEL   = "gemini-2.5-flash-lite"
+GEMINI_MODEL = "gemini-2.5-flash"
 
 PROMPT = (
     "You are a coding assistant. The screenshots contain a coding problem or question. "
@@ -27,12 +27,19 @@ PROMPT = (
 )
 # ────────────────────────────────────────────────────────────────────────────
 
-client       = genai.Client(api_key=GEMINI_API_KEY)
+client = genai.Client(api_key=GEMINI_API_KEY)
 
-screenshot_queue: list[Image.Image] = []   # holds queued screenshots
-queue_lock   = threading.Lock()            # thread-safe queue access
-processing   = False                       # debounce flag
+screenshot_queue: list[Image.Image] = []
+queue_lock   = threading.Lock()
+processing   = False
 pressed_keys = set()
+
+# ── Hotkey definitions ───────────────────────────────────────────────────────
+# All combos use 'k' as the anchor key
+KEY_ANCHOR = 'k'
+KEY_ADD    = ','   # k + , → add screenshot
+KEY_SEND   = '.'   # k + . → send queue
+KEY_CLEAR  = '/'   # k + / → clear queue
 
 
 # ── Screenshot helpers ───────────────────────────────────────────────────────
@@ -40,8 +47,7 @@ def take_screenshot() -> Image.Image:
     with mss.mss() as sct:
         monitor = sct.monitors[0]
         raw = sct.grab(monitor)
-        img = Image.frombytes("RGB", raw.size, raw.bgra, "raw", "BGRX")
-    return img
+        return Image.frombytes("RGB", raw.size, raw.bgra, "raw", "BGRX")
 
 
 def strip_code_fences(text: str) -> str:
@@ -55,30 +61,23 @@ def strip_code_fences(text: str) -> str:
 
 # ── Gemini call ──────────────────────────────────────────────────────────────
 def query_gemini(images: list[Image.Image]) -> str:
-    # Build contents: prompt first, then every image
     contents = [PROMPT] + images
-
     print(f"logs: Sending {len(images)} screenshot(s) to Gemini...", flush=True)
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=contents,
-    )
+    response = client.models.generate_content(model=GEMINI_MODEL, contents=contents)
     print("logs: Response received.", flush=True)
     return strip_code_fences(response.text.strip())
 
 
 # ── Hotkey actions ───────────────────────────────────────────────────────────
 def add_to_queue():
-    """Ctrl + Space — capture and queue a screenshot."""
     img = take_screenshot()
     with queue_lock:
         screenshot_queue.append(img)
         count = len(screenshot_queue)
-    print(f"📸  Screenshot #{count} added to queue. (Press Ctrl+Shift+Space to send all)", flush=True)
+    print(f"📸  Screenshot #{count} added to queue.  (k+. to send | k+/ to clear)", flush=True)
 
 
 def send_queue():
-    """Ctrl + Shift + Space — send all queued screenshots to Gemini."""
     global processing
 
     with queue_lock:
@@ -89,7 +88,7 @@ def send_queue():
         screenshot_queue.clear()
 
     if processing:
-        print("⚠️   Already processing a request, please wait.", flush=True)
+        print("⚠️   Already processing, please wait.", flush=True)
         return
     processing = True
 
@@ -98,13 +97,11 @@ def send_queue():
         try:
             print(f"\n🤖  Sending {len(images_to_send)} screenshot(s) to Gemini...", flush=True)
             answer = query_gemini(images_to_send)
-
             pyperclip.copy(answer)
             print("✅  Code copied to clipboard!\n", flush=True)
             print("─" * 60)
             print(answer)
             print("─" * 60, flush=True)
-
         except Exception as e:
             print(f"❌  Error: {e}", flush=True)
         finally:
@@ -114,7 +111,6 @@ def send_queue():
 
 
 def clear_queue():
-    """Ctrl + Shift + X — discard all queued screenshots."""
     with queue_lock:
         count = len(screenshot_queue)
         screenshot_queue.clear()
@@ -122,30 +118,29 @@ def clear_queue():
 
 
 # ── Keyboard listener ────────────────────────────────────────────────────────
+def get_char(key) -> str | None:
+    """Safely extract the character from a key event."""
+    try:
+        return key.char
+    except AttributeError:
+        return None
+
+
 def on_press(key):
     pressed_keys.add(key)
 
-    ctrl_held  = keyboard.Key.ctrl_l  in pressed_keys or keyboard.Key.ctrl_r  in pressed_keys
-    shift_held = keyboard.Key.shift_l in pressed_keys or keyboard.Key.shift_r in pressed_keys
-    space      = keyboard.Key.space   in pressed_keys
+    chars = {get_char(k) for k in pressed_keys}   # set of all held characters
 
-    try:
-        x_held = keyboard.KeyCode.from_char('x') in pressed_keys or \
-                 keyboard.KeyCode.from_char('X') in pressed_keys
-    except Exception:
-        x_held = False
-
-    if ctrl_held and shift_held and x_held:
-        pressed_keys.clear()
-        clear_queue()
-
-    elif ctrl_held and shift_held and space:
-        pressed_keys.clear()
-        send_queue()
-
-    elif ctrl_held and not shift_held and space:
-        pressed_keys.clear()
-        add_to_queue()
+    if KEY_ANCHOR in chars:
+        if KEY_ADD in chars:
+            pressed_keys.clear()
+            add_to_queue()
+        elif KEY_SEND in chars:
+            pressed_keys.clear()
+            send_queue()
+        elif KEY_CLEAR in chars:
+            pressed_keys.clear()
+            clear_queue()
 
 
 def on_release(key):
@@ -158,9 +153,9 @@ def on_release(key):
 # ── Entry point ──────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     print("🚀  Screenshot-AI running in background.")
-    print("    Ctrl + Space            →  Add screenshot to queue")
-    print("    Ctrl + Shift + Space    →  Send all queued screenshots to Gemini")
-    print("    Ctrl + Shift + X        →  Clear the queue\n")
+    print(f"    k + ,  →  Add screenshot to queue")
+    print(f"    k + .  →  Send all screenshots to Gemini")
+    print(f"    k + /  →  Clear the queue\n")
 
     with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
         listener.join()
