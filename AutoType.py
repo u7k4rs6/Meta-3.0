@@ -20,7 +20,12 @@ if not GEMINI_API_KEY:
     print("⚠️  CRITICAL: GEMINI_API_KEY not found. Please set it in your .env file.")
     sys.exit(1)
 
-GEMINI_MODEL   = "gemini-2.5-flash"
+GEMINI_MODELS = [
+    "gemini-2.5-flash",       # primary
+    "gemini-2.5-pro",  # fallback 1
+    "gemini-2.5-flash-lite",       # fallback 2
+]
+
 AUTO_TYPE      = True
 STARTUP_DELAY  = 2
 TYPE_DELAY_MIN = 0.10
@@ -53,29 +58,29 @@ KEY_SEND   = '.'
 KEY_CLEAR  = '/'
 
 # ── Pause control ────────────────────────────────────────────────────────────
-is_typing  = False    # True only while type_answer() is running
-is_paused  = False    # True when user pressed Esc to pause
+is_typing   = False
+is_paused   = False
 pause_event = threading.Event()
-pause_event.set()     # start in "not paused" state (set = allowed to proceed)
+pause_event.set()
 
 
 def pause_typing():
     global is_paused
     is_paused = True
-    pause_event.clear()   # block the typing loop
+    pause_event.clear()
     print("⏸️   Typing paused. Press Esc again to resume.", flush=True)
 
 
 def resume_typing():
     global is_paused
     is_paused = False
-    pause_event.set()     # unblock the typing loop
+    pause_event.set()
     print("▶️   Typing resumed.", flush=True)
 
 
 def toggle_pause():
     if not is_typing:
-        return            # Esc does nothing if we're not currently typing
+        return
     if is_paused:
         resume_typing()
     else:
@@ -134,13 +139,22 @@ def clean_response(raw: str) -> str:
     return code.strip()
 
 
-# ── Gemini ───────────────────────────────────────────────────────────────────
+# ── Gemini with fallback ──────────────────────────────────────────────────────
 def query_gemini(images: list[Image.Image]) -> str:
     contents = [PROMPT] + images
-    print(f"logs: Sending {len(images)} screenshot(s) to Gemini...", flush=True)
-    response = client.models.generate_content(model=GEMINI_MODEL, contents=contents)
-    print("logs: Response received.", flush=True)
-    return clean_response(response.text)
+    last_error = None
+
+    for model in GEMINI_MODELS:
+        try:
+            print(f"logs: Trying model {model}...", flush=True)
+            response = client.models.generate_content(model=model, contents=contents)
+            print(f"logs: ✅ Response from {model}", flush=True)
+            return clean_response(response.text)
+        except Exception as e:
+            print(f"logs: ⚠️  {model} failed — {e}", flush=True)
+            last_error = e
+
+    raise RuntimeError(f"All models failed. Last error: {last_error}")
 
 
 # ── Typing ───────────────────────────────────────────────────────────────────
@@ -149,7 +163,6 @@ def human_delay():
 
 
 def wait_if_paused():
-    """Called before every keystroke — blocks here if paused."""
     pause_event.wait()
 
 
@@ -171,7 +184,7 @@ def type_answer(answer: str):
     lines = answer.splitlines()
     for i, line in enumerate(lines):
         for char in line:
-            wait_if_paused()       # ← pauses here if Esc was pressed
+            wait_if_paused()
             kb.type(char)
             human_delay()
 
@@ -254,7 +267,6 @@ def get_char(key) -> str | None:
 
 
 def on_press(key):
-    # Esc toggles pause — checked first before anything else
     if key == Key.esc:
         toggle_pause()
         return
@@ -286,6 +298,7 @@ if __name__ == "__main__":
     mode = "AUTO-TYPE" if AUTO_TYPE else "Clipboard"
     print("🚀  Screenshot-AI running in background.")
     print(f"    Mode   : {mode}")
+    print(f"    Models : {' → '.join(GEMINI_MODELS)}")
     print(f"    k + ,  →  Add screenshot to queue")
     print(f"    k + .  →  Send all screenshots to Gemini")
     print(f"    k + /  →  Clear the queue")
