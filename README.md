@@ -4,16 +4,6 @@ A background service that captures your screen, sends it to Gemini, and delivers
 
 ---
 
-## Hotkeys (same across all versions)
-
-| Hotkey  | Action                                |
-| ------- | ------------------------------------- |
-| `k + ,` | Add current screenshot to queue       |
-| `k + .` | Send all queued screenshots to Gemini |
-| `k + /` | Clear the queue                       |
-
----
-
 ## Setup (same across all versions)
 
 ### 1. Install dependencies
@@ -30,7 +20,13 @@ GEMINI_API_KEY=your-key-here
 
 Get a free key at https://aistudio.google.com/app/apikey
 
-### 3. Run whichever version you want
+### 3. Run using the watcher (auto-restarts on file save)
+
+```bash
+python run.py
+```
+
+Or run directly:
 
 ```bash
 python main.py
@@ -48,6 +44,12 @@ Takes the screenshot, sends it to Gemini, and copies the response directly to yo
 - Works on Windows, macOS, Linux
 - Best for: any situation where `Ctrl+V` is allowed
 
+| Hotkey  | Action                                |
+| ------- | ------------------------------------- |
+| `k + ,` | Add current screenshot to queue       |
+| `k + .` | Send all queued screenshots to Gemini |
+| `k + /` | Clear the queue                       |
+
 ---
 
 ## Version 2 — Auto-Type
@@ -58,15 +60,24 @@ After getting the response from Gemini, automatically types it into whatever fie
 
 - Bypasses sites that block `Ctrl+V` paste
 - 2 second window after Gemini responds to click into the target field
+- Press `Esc` at any point to pause typing — press `Esc` again to resume from exactly where it stopped
 - Works on Windows, macOS, Linux
 - Best for: paste-blocked coding platforms (HackerRank, etc.)
 
+| Hotkey  | Action                                |
+| ------- | ------------------------------------- |
+| `k + ,` | Add current screenshot to queue       |
+| `k + .` | Send all queued screenshots to Gemini |
+| `k + /` | Clear the queue                       |
+| `Esc`   | Pause / Resume typing                 |
+
 **Key settings at top of file:**
-| Setting | Default | What it does |
-|---------|---------|--------------|
-| `STARTUP_DELAY` | `2` | Seconds before typing starts |
-| `TYPE_DELAY_MIN` | `0.04` | Fastest keystroke gap (seconds) |
-| `TYPE_DELAY_MAX` | `0.12` | Slowest keystroke gap (seconds) |
+
+| Setting          | Default | What it does                    |
+| ---------------- | ------- | ------------------------------- |
+| `STARTUP_DELAY`  | `2`     | Seconds before typing starts    |
+| `TYPE_DELAY_MIN` | `0.10`  | Fastest keystroke gap (seconds) |
+| `TYPE_DELAY_MAX` | `0.25`  | Slowest keystroke gap (seconds) |
 
 ---
 
@@ -88,23 +99,37 @@ Same clipboard output as Version 1 but with a smarter prompt that adapts to any 
 - Works on Windows, macOS, Linux
 - Best for: general daily use across different question types
 
+| Hotkey  | Action                                |
+| ------- | ------------------------------------- |
+| `k + ,` | Add current screenshot to queue       |
+| `k + .` | Send all queued screenshots to Gemini |
+| `k + /` | Clear the queue                       |
+
 ---
 
 ## Version 4 — Overlay
 
 **Files:** `v4_overlay/main.py` + `v4_overlay/overlay.py`
 
-Displays the AI response in a floating transparent window on your screen that is completely invisible to screenshots and screen sharing tools. Only visible on your physical monitor.
+Displays the AI response in a floating transparent window on your screen that is completely invisible to screenshots and screen sharing tools. Only visible on your physical monitor. Responses are rendered as formatted Markdown — headings, bold, inline code, and code blocks all display correctly.
 
 - Scrollable — handles long responses fine
-- Draggable — click the header to reposition
-- Press `Esc` or click `✕` to close
-- Auto-hides after 60 seconds
+- Draggable — click and drag the header to reposition
+- Markdown rendering — headings, bold, code blocks displayed properly
 - **Windows 10 v2004 (May 2020) or later required**
 - Best for: when you are screen sharing or being proctored
 
+| Hotkey     | Action                                       |
+| ---------- | -------------------------------------------- |
+| `k + ,`    | Add current screenshot to queue              |
+| `k + .`    | Send to Gemini → response appears in overlay |
+| `k + /`    | Clear the queue                              |
+| `k + t`    | Show dummy test content (for UI testing)     |
+| `m + n`    | Toggle overlay — hide it or bring it back    |
+| `✕ button` | Close the overlay                            |
+
 **How the invisibility works:**
-Uses the native Windows API `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` which tells the GPU compositor to exclude the window from all capture pipelines. Invisible to PrintScreen, Snipping Tool, Zoom, Google Meet, Microsoft Teams, and OBS.
+Uses the native Windows API `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` which tells the GPU compositor to exclude the window from all capture pipelines. Invisible to PrintScreen, Snipping Tool, Zoom, Google Meet, Microsoft Teams, and OBS. The affinity is re-applied every time the overlay is shown to prevent Windows from resetting it.
 
 ---
 
@@ -115,7 +140,9 @@ Uses the native Windows API `SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)` w
 | Output method                | Clipboard    | Simulated typing | Clipboard  | Floating window |
 | Works on paste-blocked sites | ❌           | ✅               | ❌         | ✅ (read only)  |
 | Invisible to screen share    | ❌           | ✅               | ❌         | ✅              |
+| Pause / resume output        | ❌           | ✅ (Esc key)     | ❌         | ❌              |
+| Toggle visibility            | ❌           | ❌               | ❌         | ✅ (m + n)      |
+| Markdown rendering           | ❌           | ❌               | ❌         | ✅              |
 | Scrollable output            | ❌           | ❌               | ❌         | ✅              |
-| Adaptive to question type    | ✅           | ✅               | ✅         | ✅              |
 | Extra files needed           | None         | None             | None       | `overlay.py`    |
 | OS support                   | Any          | Any              | Any        | Windows only    |
