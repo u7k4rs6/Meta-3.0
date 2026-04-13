@@ -52,6 +52,47 @@ KEY_ANCHOR = 'k'
 KEY_ADD    = ','
 KEY_SEND   = '.'
 KEY_CLEAR  = '/'
+KEY_STOP   = 'x'
+
+# ── Typing state ─────────────────────────────────────────────────────────────
+is_typing   = False
+is_paused   = False
+is_stopped  = False
+
+pause_event = threading.Event()
+pause_event.set()
+
+
+def pause_typing():
+    global is_paused
+    is_paused = True
+    pause_event.clear()
+    print("⏸️   Typing paused. Press a+s or Esc to resume, k+x to stop.", flush=True)
+
+
+def resume_typing():
+    global is_paused
+    is_paused = False
+    pause_event.set()
+    print("▶️   Typing resumed.", flush=True)
+
+
+def stop_typing():
+    global is_stopped
+    if not is_typing:
+        return
+    is_stopped = True
+    pause_event.set()
+    print("⛔  Typing stopped.", flush=True)
+
+
+def toggle_pause():
+    if not is_typing:
+        return
+    if is_paused:
+        resume_typing()
+    else:
+        pause_typing()
 
 
 # ── Screenshot ───────────────────────────────────────────────────────────────
@@ -85,18 +126,34 @@ def human_delay():
     time.sleep(random.uniform(TYPE_DELAY_MIN, TYPE_DELAY_MAX))
 
 
+def wait_if_paused() -> bool:
+    pause_event.wait()
+    return not is_stopped
+
+
 def type_answer(answer: str):
+    global is_typing, is_stopped
+    is_typing  = True
+    is_stopped = False
+
     for char in answer:
+        if not wait_if_paused():
+            is_typing = False
+            return
         kb.type(char)
         human_delay()
+    
+    is_typing = False
 
 
 def deliver_answer(answer: str):
     if AUTO_TYPE:
-        print(f"⌨️   Typing starts in {STARTUP_DELAY}s — click into the answer field now!", flush=True)
+        print(f"⌨️   Typing starts in {STARTUP_DELAY}s... click into the field!", flush=True)
+        print(f"    a+s or Esc → pause/resume  |  k+x → stop", flush=True)
         time.sleep(STARTUP_DELAY)
         type_answer(answer)
-        print("✅  Done typing!\n", flush=True)
+        if not is_stopped:
+            print("✅  Done typing!\n", flush=True)
     else:
         pyperclip.copy(answer)
         print("✅  Answer copied to clipboard!\n", flush=True)
@@ -161,9 +218,19 @@ def get_char(key) -> str | None:
 def on_press(key):
     pressed_keys.add(key)
     chars = {get_char(k) for k in pressed_keys}
+    lower = {c.lower() for c in chars if c}
+
+    # a + s or Esc → toggle pause
+    if ('a' in lower and 's' in lower) or key == keyboard.Key.esc:
+        pressed_keys.clear()
+        toggle_pause()
+        return
 
     if KEY_ANCHOR in chars:
-        if KEY_ADD in chars:
+        if KEY_STOP in chars:
+            pressed_keys.clear()
+            stop_typing()
+        elif KEY_ADD in chars:
             pressed_keys.clear()
             add_to_queue()
         elif KEY_SEND in chars:
@@ -184,11 +251,13 @@ def on_release(key):
 # ── Entry point ──────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     mode = "AUTO-TYPE" if AUTO_TYPE else "Clipboard"
-    print("🚀  Screenshot-AI running in background.")
+    print("🚀  Screenshot-AI running in background (General Mode).")
     print(f"    Mode   : {mode}")
     print(f"    k + ,  →  Add screenshot to queue")
     print(f"    k + .  →  Send all screenshots to Gemini")
-    print(f"    k + /  →  Clear the queue\n")
+    print(f"    k + /  →  Clear the queue")
+    print(f"    a+s or Esc → Pause / Resume typing")
+    print(f"    k + x  →  Stop typing\n")
 
     with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
         listener.join()

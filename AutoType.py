@@ -227,7 +227,7 @@ def type_answer(answer: str):
 def deliver_answer(answer: str):
     if AUTO_TYPE:
         print(f"⌨️   Typing starts in {STARTUP_DELAY}s — click into the answer field now!", flush=True)
-        print(f"    a+s → pause/resume  |  k+x → stop completely", flush=True)
+        print(f"    a+s or Esc → pause/resume  |  k+x → stop completely", flush=True)
         time.sleep(STARTUP_DELAY)
         type_answer(answer)
         if not is_stopped:
@@ -298,8 +298,8 @@ def on_press(key):
     chars = {get_char(k) for k in pressed_keys}
     lower = {c.lower() for c in chars if c}
 
-    # a + s → toggle pause
-    if 'a' in lower and 's' in lower:
+    # a + s or Esc → toggle pause
+    if ('a' in lower and 's' in lower) or key == keyboard.Key.esc:
         pressed_keys.clear()
         toggle_pause()
         return
@@ -335,7 +335,7 @@ if __name__ == "__main__":
     print(f"    k + ,  →  Add screenshot to queue")
     print(f"    k + .  →  Send all screenshots to Gemini")
     print(f"    k + /  →  Clear the queue")
-    print(f"    a + s  →  Pause / Resume typing")
+    print(f"    a + s or Esc → Pause / Resume typing")
     print(f"    k + x  →  Stop typing immediately\n")
 
     with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:

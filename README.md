@@ -56,7 +56,7 @@ Simulates human-like typing to enter code character-by-character.
 | `k + ,` | Add screenshot to queue               |
 | `k + .` | Start processing queue                |
 | `k + /` | Clear queue                           |
-| `a + s` | **Pause / Resume** typing             |
+| `a + s` | **Pause / Resume** typing (or press `Esc`) |
 | `k + x` | **Abort** typing immediately          |
 
 ---
