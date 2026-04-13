@@ -23,9 +23,11 @@ GEMINI_MODELS = [
 ]
 
 PROMPT = (
-    "Extract ONLY the correct option letter (A, B, C, D, etc.) from the multiple choice question images. "
-    "If no letters are present, assign them as A, B, C, D... consecutively and return the chosen letter. "
-    "Your response MUST be exactly one character. No words, no punctuation, no explanations."
+    "Extract the correct option letter(s) (A, B, C, D, etc.) from the MCQ images. "
+    "If options are not labeled, assign them letters A, B, C, D... consecutively. "
+    "If multiple answers are potentially correct for one question, return them as a comma-separated list. "
+    "If there are multiple distinct questions in the screenshot, separate the answers for each question with a pipe character (|). "
+    "Order answers by confidence. Response must contain ONLY option characters, commas, and pipes — no words or explanations."
 )
 # ────────────────────────────────────────────────────────────────────────────
 
@@ -61,17 +63,16 @@ def query_gemini(images: list[Image.Image]) -> str:
             response = client.models.generate_content(model=model, contents=contents)
             answer   = response.text.strip()
             
-            # Post-processing safety net: extract only the first A, B, C, D letter if verbose
-            if len(answer) > 1:
-                import re
-                match = re.search(r'\b([A-Ga-g])\b', answer) # Look for standalone letters
+            # Post-processing: Extract option letters, commas, and pipes
+            import re
+            valid_parts = re.findall(r'[A-Ga-g,| ]', answer)
+            if valid_parts:
+                answer = "".join(valid_parts).upper()
+            else:
+                # Fallback: take first letter found if no valid pattern
+                match = re.search(r'[a-zA-Z]', answer)
                 if match:
-                    answer = match.group(1).upper()
-                else:
-                    # Fallback: just take the first letter if it's alphanumeric
-                    match = re.search(r'[a-zA-Z]', answer)
-                    if match:
-                        answer = match.group(0).upper()
+                    answer = match.group(0).upper()
 
             print(f"logs: ✅ {model} → {answer}", flush=True)
             return answer

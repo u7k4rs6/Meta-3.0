@@ -78,7 +78,9 @@ An adaptive version that detects the question type and responds accordingly.
 
 Specialized for Multiple Choice Questions with a tiny, persistent overlay.
 - **Invisible:** Overlay is hidden from screenshots and screen sharing.
-- **Single-Char:** Returns only the correct option (A, B, C, D) for maximum speed.
+- **Multi-Question Support:** Handles multiple MCQs in one screenshot by separating answers with a pipe (`|`).
+- **Multi-Answer Support:** Returns comma-separated options (e.g., `A,C`) if a single question has multiple correct answers.
+- **Single-Char:** Returns just the option for standard questions.
 - **Multi-Model Fallback:** Automatically tries Flash → Pro → Flash Lite if one fails.
 
 | Hotkey  | Action                                   |
