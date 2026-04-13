@@ -71,7 +71,7 @@ def pause_typing():
     global is_paused
     is_paused = True
     pause_event.clear()
-    print("⏸️   Typing paused. Press Esc to resume, k+x to stop.", flush=True)
+    print("⏸️   Typing paused. Press a+s to resume, k+x to stop.", flush=True)
 
 
 def resume_typing():
@@ -227,7 +227,7 @@ def type_answer(answer: str):
 def deliver_answer(answer: str):
     if AUTO_TYPE:
         print(f"⌨️   Typing starts in {STARTUP_DELAY}s — click into the answer field now!", flush=True)
-        print(f"    Esc → pause/resume  |  k+x → stop completely", flush=True)
+        print(f"    a+s → pause/resume  |  k+x → stop completely", flush=True)
         time.sleep(STARTUP_DELAY)
         type_answer(answer)
         if not is_stopped:
@@ -294,12 +294,15 @@ def get_char(key) -> str | None:
 
 
 def on_press(key):
-    if key == Key.esc:
-        toggle_pause()
-        return
-
     pressed_keys.add(key)
     chars = {get_char(k) for k in pressed_keys}
+    lower = {c.lower() for c in chars if c}
+
+    # a + s → toggle pause
+    if 'a' in lower and 's' in lower:
+        pressed_keys.clear()
+        toggle_pause()
+        return
 
     if KEY_ANCHOR in chars:
         if KEY_STOP in chars:              # k + x → stop typing
@@ -332,7 +335,7 @@ if __name__ == "__main__":
     print(f"    k + ,  →  Add screenshot to queue")
     print(f"    k + .  →  Send all screenshots to Gemini")
     print(f"    k + /  →  Clear the queue")
-    print(f"    Esc    →  Pause / Resume typing")
+    print(f"    a + s  →  Pause / Resume typing")
     print(f"    k + x  →  Stop typing immediately\n")
 
     with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
