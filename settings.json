@@ -1,0 +1,41 @@
+{
+  "models": [
+    "gemini-2.5-flash",
+    "gemini-2.5-pro",
+    "gemini-2.5-flash-lite"
+  ],
+  "active_agent": "full_control",
+  "overlay": {
+    "alpha": 0.93,
+    "bg_color": "#0e0e1a",
+    "fg_color": "#c8c8d0",
+    "accent_color": "#7c6af7",
+    "width": 580,
+    "height": 560,
+    "pos_x": -1,
+    "pos_y": 24
+  },
+  "typing": {
+    "delay_min": 0.05,
+    "delay_max": 0.12,
+    "startup_delay": 2.0,
+    "multifile_mode": false
+  },
+  "audio": {
+    "interval": 10.0,
+    "threshold": 150.0
+  },
+  "hotkeys": {
+    "add_screenshot": "k+,",
+    "send": "k+.",
+    "clear_queue": "k+/",
+    "toggle_overlay": "m+n",
+    "clear_memory": "k+c",
+    "stop_typing": "k+x",
+    "pause_typing": "a+s",
+    "next_file": "k+n",
+    "retype": "k+r",
+    "send_transcript": "k+.",
+    "send_with_shot": "k+,"
+  }
+}

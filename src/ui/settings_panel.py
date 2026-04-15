@@ -156,9 +156,19 @@ class SettingsPanel:
 
     def _tab_models(self, nb) -> None:
         t = self._make_tab(nb, "🤖  Models")
+        
+        # API Key Section
+        _label(t, "Gemini API Key:", fg=ACC, font=("Segoe UI", 10, "bold")).pack(anchor="w")
+        var = tk.StringVar(value=self._cfg.api_key)
+        self._vars["api_key"] = var
+        tk.Entry(t, textvariable=var, bg=ENTRY_BG, fg=ENTRY_FG,
+                 font=("Segoe UI", 10), relief="flat", bd=0,
+                 insertbackground=ACC, width=40, show="*").pack(anchor="w", pady=(2, 12), fill="x")
+
+        _label(t, "Model Priority (Models are tried in order):", fg=FG).pack(anchor="w", pady=(8, 2))
         for i, m in enumerate(self._cfg.models):
             self._row(t, f"Model {i+1}", f"model_{i}", m)
-        _label(t, "Order = priority. First model tried first.", fg="#555577").pack(pady=(8, 0))
+        _label(t, "Get a free key at aistudio.google.com/app/apikey", fg="#555577").pack(pady=(8, 0))
 
     # ── Save ─────────────────────────────────────────────────────────────────
 
@@ -170,6 +180,7 @@ class SettingsPanel:
             except Exception:
                 return typ()
 
+        self._cfg.api_key = g("api_key")
         hk = self._cfg.hotkeys
         hk.add_screenshot  = g("hk_add_screenshot")
         hk.send            = g("hk_send")

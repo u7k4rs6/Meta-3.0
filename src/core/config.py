@@ -7,12 +7,24 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import List, Dict
 
-# Settings file lives next to the repo root (not inside src/)
-_ROOT = Path(__file__).parent.parent.parent
+# ── Path Resolution ───────────────────────────────────────────────────────────
+
+def get_root_dir() -> Path:
+    """Get the directory where settings.json and .env should live."""
+    if getattr(sys, 'frozen', False):
+        # Running as a PyInstaller bundle (.exe)
+        return Path(sys.executable).parent
+    else:
+        # Running as a normal script
+        # src/core/config.py -> parent(core) -> parent(src) -> parent(root)
+        return Path(__file__).parent.parent.parent
+
+_ROOT = get_root_dir()
 SETTINGS_PATH = _ROOT / "settings.json"
 ENV_PATH      = _ROOT / ".env"
 
@@ -83,12 +95,36 @@ class Config:
 def _load_env_key() -> str:
     """Read GEMINI_API_KEY from .env if it exists."""
     if ENV_PATH.exists():
-        for line in ENV_PATH.read_text().splitlines():
-            line = line.strip()
-            if line.startswith("GEMINI_API_KEY"):
-                _, _, val = line.partition("=")
-                return val.strip().strip('"').strip("'")
+        try:
+            for line in ENV_PATH.read_text().splitlines():
+                line = line.strip()
+                if line.startswith("GEMINI_API_KEY"):
+                    _, _, val = line.partition("=")
+                    return val.strip().strip('"').strip("'")
+        except Exception:
+            pass
     return os.environ.get("GEMINI_API_KEY", "")
+
+
+def _save_env_key(key: str) -> None:
+    """Write GEMINI_API_KEY to .env file."""
+    lines = []
+    found = False
+    if ENV_PATH.exists():
+        try:
+            for line in ENV_PATH.read_text().splitlines():
+                if line.strip().startswith("GEMINI_API_KEY"):
+                    lines.append(f"GEMINI_API_KEY={key}")
+                    found = True
+                else:
+                    lines.append(line)
+        except Exception:
+            pass
+    
+    if not found:
+        lines.append(f"GEMINI_API_KEY={key}")
+    
+    ENV_PATH.write_text("\n".join(lines), encoding="utf-8")
 
 
 def _deep_merge(defaults: dict, saved: dict) -> dict:
@@ -131,7 +167,15 @@ def load_config() -> Config:
 
 
 def save_config(cfg: Config) -> None:
-    """Persist config to settings.json (api_key excluded for security)."""
+    """Persist config to settings.json and API key to .env."""
+    # Save API key to .env
+    if cfg.api_key:
+        _save_env_key(cfg.api_key)
+
+    # Save other settings to settings.json
     d = asdict(cfg)
     d.pop("api_key", None)   # never write key to json
-    SETTINGS_PATH.write_text(json.dumps(d, indent=2), encoding="utf-8")
+    try:
+        SETTINGS_PATH.write_text(json.dumps(d, indent=2), encoding="utf-8")
+    except Exception as e:
+        print(f"Error saving settings: {e}")

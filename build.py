@@ -22,6 +22,7 @@ cmd = [
     "--hidden-import", "pynput.keyboard._win32",
     "--hidden-import", "pynput.mouse._win32",
     "--hidden-import", "PIL._tkinter_finder",
+    "--hidden-import", "pystray",
     "--collect-all", "google.genai",
     f"{ROOT}/main.py",
 ]

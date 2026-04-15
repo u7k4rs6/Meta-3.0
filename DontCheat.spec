@@ -3,7 +3,7 @@ from PyInstaller.utils.hooks import collect_all
 
 datas = [('D:\\Sumit Codes\\Crazy Shit/src', 'src')]
 binaries = []
-hiddenimports = ['google.genai', 'sounddevice', 'pyaudiowpatch', 'pynput.keyboard._win32', 'pynput.mouse._win32', 'PIL._tkinter_finder']
+hiddenimports = ['google.genai', 'sounddevice', 'pyaudiowpatch', 'pynput.keyboard._win32', 'pynput.mouse._win32', 'PIL._tkinter_finder', 'pystray']
 tmp_ret = collect_all('google.genai')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 

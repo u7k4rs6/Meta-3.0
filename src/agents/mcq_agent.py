@@ -69,11 +69,15 @@ class MCQAgent(BaseAgent):
             self._queue.append(img)
             n = len(self._queue)
         print(f"📸  Screenshot #{n} queued.", flush=True)
+        if hasattr(self, '_overlay') and self._overlay:
+            self._overlay.set_log(f"Queued {n} image(s)")
 
     def _send_queue(self) -> None:
         with self._q_lock:
             if not self._queue:
                 print("⚠️  Queue empty.", flush=True)
+                if hasattr(self, '_overlay') and self._overlay:
+                    self._overlay.set_log("Queue empty")
                 return
             imgs, self._queue = list(self._queue), []
 
@@ -83,13 +87,19 @@ class MCQAgent(BaseAgent):
 
         def _run():
             try:
-                self._overlay.set_thinking()
+                if hasattr(self, '_overlay') and self._overlay:
+                    self._overlay.set_thinking()
                 answer = self._gemini.generate([PROMPT] + imgs)
                 answer = self._clean_mcq(answer)
-                self._overlay.set_answer(answer)
+                if hasattr(self, '_overlay') and self._overlay:
+                    self._overlay.set_answer(answer)
                 print(f"✅  MCQ answer: {answer}", flush=True)
             except Exception as e:
-                self._overlay.set_error()
+                if hasattr(self, '_overlay') and self._overlay:
+                    # Provide snippet of error to the UI
+                    err_str = str(e)
+                    short_err = err_str if len(err_str) < 30 else err_str[:27] + "..."
+                    self._overlay.set_error(short_err)
                 print(f"❌  {e}", flush=True)
             finally:
                 self._processing = False
@@ -100,6 +110,8 @@ class MCQAgent(BaseAgent):
         with self._q_lock:
             n, self._queue = len(self._queue), []
         print(f"🗑️  Cleared {n}.", flush=True)
+        if hasattr(self, '_overlay') and self._overlay:
+            self._overlay.set_log("Queue cleared")
 
     def _toggle_overlay(self) -> None:
         self._overlay.toggle()

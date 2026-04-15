@@ -16,11 +16,28 @@ import sys
 import io
 import os
 
-# ── Force UTF-8 output on Windows to support emoji in print() ────────────────
-if sys.stdout and hasattr(sys.stdout, "buffer"):
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-if sys.stderr and hasattr(sys.stderr, "buffer"):
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+# ── Force Robust Output Handling (Fixes Errno 22 in Windowed Mode) ───────────
+class _NullWriter:
+    def write(self, *args, **kwargs): pass
+    def flush(self): pass
+
+def _fix_output_streams():
+    try:
+        if sys.stdout is None or not hasattr(sys.stdout, "write"):
+            sys.stdout = _NullWriter()
+        if sys.stderr is None or not hasattr(sys.stderr, "write"):
+            sys.stderr = _NullWriter()
+            
+        # Try to re-wrap for UTF-8 if they look like real buffers
+        if hasattr(sys.stdout, "buffer"):
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+        if hasattr(sys.stderr, "buffer"):
+            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
+    except (OSError, AttributeError):
+        sys.stdout = _NullWriter()
+        sys.stderr = _NullWriter()
+
+_fix_output_streams()
 os.environ.setdefault("PYTHONUTF8", "1")
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -33,11 +50,13 @@ def _setup_path():
         sys.path.insert(0, root)
 
 
-def _check_api_key(cfg) -> None:
+def _check_api_key(cfg, is_gui: bool = False) -> bool:
     if not cfg.api_key:
-        print("⚠️  CRITICAL: GEMINI_API_KEY not found in .env or environment.")
-        print("   Create a .env file with: GEMINI_API_KEY=your_key_here")
-        sys.exit(1)
+        if not is_gui:
+            print("⚠️  CRITICAL: GEMINI_API_KEY not found in .env or environment.")
+            print("   Create a .env file with: GEMINI_API_KEY=your_key_here")
+            return False
+    return True
 
 
 def run_gui():
@@ -45,8 +64,7 @@ def run_gui():
     from src.ui.launcher import LauncherWindow
 
     cfg = load_config()
-    _check_api_key(cfg)
-
+    # We don't exit here anymore; LauncherWindow will handle missing key.
     app = LauncherWindow(cfg)
     app.run()
 
@@ -56,7 +74,8 @@ def run_headless(agent_key: str):
     from src.core.hotkey_manager import HotkeyManager
 
     cfg = load_config()
-    _check_api_key(cfg)
+    if not _check_api_key(cfg, is_gui=False):
+        sys.exit(1)
 
     agents = {
         "clipboard":    "src.agents.clipboard_agent.ClipboardAgent",
@@ -95,6 +114,8 @@ def run_headless(agent_key: str):
 
 
 if __name__ == "__main__":
+    import multiprocessing
+    multiprocessing.freeze_support()
     _setup_path()
 
     parser = argparse.ArgumentParser(

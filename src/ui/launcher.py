@@ -164,8 +164,11 @@ class LauncherWindow:
                               on_click=lambda k=key: self._select(k))
             self._cards[key] = card
 
-        # Welcome state
-        self._show_welcome()
+        # Initial view
+        if not self._cfg.api_key:
+            self._toggle_settings()
+        else:
+            self._show_welcome()
 
     def _show_welcome(self) -> None:
         self._clear_detail()
@@ -265,6 +268,11 @@ class LauncherWindow:
         self._launch_btn.bind("<Enter>", lambda e: self._launch_btn.config(bg="#48c88a"))
         self._launch_btn.bind("<Leave>", lambda e: self._launch_btn.config(bg=GREEN))
 
+        # API Key Warning
+        if not self._cfg.api_key:
+            tk.Label(f, text="⚠️ API Key Missing! Go to Settings to setup.", bg=BG, fg=RED,
+                     font=("Segoe UI", 9, "bold")).pack(pady=(0, 10))
+
         stop_btn = tk.Label(btn_row, text="  ■  Stop  ", bg=RED, fg="#fff",
                             font=("Segoe UI", 11, "bold"), cursor="hand2", pady=8, padx=16)
         stop_btn.pack(side="left", padx=8)
@@ -296,6 +304,12 @@ class LauncherWindow:
     # ── Agent lifecycle ───────────────────────────────────────────────────────
 
     def _launch(self, key: str) -> None:
+        if not self._cfg.api_key:
+            from tkinter import messagebox
+            messagebox.showwarning("API Key Required", "Please enter your Gemini API Key in the Settings panel before launching an agent.")
+            self._toggle_settings()
+            return
+
         if self._active_agent:
             self._stop_agent()
 
@@ -360,6 +374,41 @@ class LauncherWindow:
         return agent_class() if agent_class else None
 
     def _on_close(self) -> None:
+        # Hide the window to system tray
+        self._root.withdraw()
+        threading.Thread(target=self._create_tray_icon, daemon=True).start()
+
+    def _create_tray_icon(self) -> None:
+        try:
+            import pystray
+            from PIL import Image, ImageDraw
+
+            # Create a simple generic icon for the tray
+            image = Image.new('RGB', (64, 64), color=(124, 106, 247))
+            d = ImageDraw.Draw(image)
+            d.text((16, 24), "DC", fill=(255, 255, 255))
+
+            def on_show(icon, item):
+                icon.stop()
+                self._root.after(0, self._root.deiconify)
+
+            def on_exit(icon, item):
+                icon.stop()
+                self._root.after(0, self._quit_app)
+
+            menu = pystray.Menu(
+                pystray.MenuItem("Show Don't Cheat", on_show, default=True),
+                pystray.MenuItem('Exit completely', on_exit)
+            )
+
+            icon = pystray.Icon("DontCheat", image, "Don't Cheat AI Toolkit", menu)
+            # This blocks the thread, which is fine since we are in a daemon thread.
+            icon.run()
+        except ImportError:
+            # Fallback if pystray not installed for some reason
+            self._quit_app()
+
+    def _quit_app(self) -> None:
         self._stop_agent()
         self._hotkeys.stop()
         self._root.destroy()
