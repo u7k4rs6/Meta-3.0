@@ -113,18 +113,39 @@ The most advanced version, featuring a floating Markdown overlay, conversation m
 
 ---
 
+## 📂 Version 6 — Multi-File Auto-Type
+**File:** `multifile_autotype.py`
+
+Specialized for **Low-Level Design (LLD)** and multi-file coding tasks. It coordinates the creation of several files in sequence.
+- **Workflow:** 
+    1. Queues screenshots of the problem statement.
+    2. Gemini generates a code solution split by `###FILE: filename` markers.
+    3. The tool types a summary of files to be created.
+    4. You create/open each file in your IDE, then press `k + n` to type the code into that file.
+- **Features:** Automated indentation (4 spaces), comment stripping for "clean" code, and re-typing support.
+
+| Hotkey  | Action                                |
+| ------- | ------------------------------------- |
+| `k + ,` | Add screenshot to queue               |
+| `k + .` | Send to Gemini & start typing sequence|
+| `k + n` | **Next File**: Start typing current file (Click into file first!) |
+| `k + r` | **Re-type**: Restart typing the last batch of files |
+| `k + /` | Clear queue                           |
+| `a + s` | **Pause / Resume** typing (or press `Esc`) |
+| `k + x` | **Stop** everything immediately       |
+
+---
+
 ## 📊 Quick Comparison
 
-| Feature                      | Clipboard | Auto-Type | General | MCQ | Full Control |
-| ---------------------------- | --------- | --------- | ------- | --- | ------------ |
-| Output Method                | Clipboard | Typing    | Typing  | Overlay | Overlay      |
-| Invisible to Screenshots     | ❌         | ✅         | ❌       | ✅   | ✅            |
-| Multi-Model Fallback         | ✅         | ✅         | ✅       | ✅   | ✅            |
-| Follow-up Questions          | ❌         | ❌         | ❌       | ❌   | ✅            |
-| Audio / Voice Input          | ❌         | ❌         | ❌       | ❌   | ✅            |
-| System Audio Listen          | ❌         | ❌         | ❌       | ❌   | ✅ (Interviewer) |
-| Markdown Rendering           | ❌         | ❌         | ❌       | ❌   | ✅            |
-| Best For                     | Quick Copy| Paste Blocked| Any     | Exams| Interviews    |
+| Feature                      | Clipboard | Auto-Type | General | MCQ | Full Control | Multi-File |
+| ---------------------------- | --------- | --------- | ------- | --- | ------------ | ---------- |
+| Output Method                | Clipboard | Typing    | Typing  | Overlay | Overlay      | Typing     |
+| Invisible to Screenshots     | ❌         | ✅         | ❌       | ✅   | ✅            | ✅          |
+| Multi-Model Fallback         | ✅         | ✅         | ✅       | ✅   | ✅            | ✅          |
+| Multi-File Support           | ❌         | ❌         | ❌       | ❌   | ❌            | ✅          |
+| Follow-up Questions          | ❌         | ❌         | ❌       | ❌   | ✅            | ❌          |
+| Best For                     | Quick Copy| Paste Blocked| Any     | Exams| Interviews    | LLD / Proj |
 
 ---
 
