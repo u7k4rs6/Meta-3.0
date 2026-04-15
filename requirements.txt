@@ -8,3 +8,4 @@ sounddevice
 pyaudiowpatch
 numpy
 scipy
+pyinstaller

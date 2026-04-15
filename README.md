@@ -1,154 +1,85 @@
-# Screenshot-AI — Multi-Version Toolkit
+# Don't Cheat AI Toolkit v2.0
 
-A background service that captures your screen, sends it to Gemini, and delivers answers via clipboard, automated typing, or floating overlays. Perfect for coding, conceptual questions, MCQs, and interview preparation.
+A complete, unified desktop application for AI assistance. It captures your screen, listens to audio, and sends context to Gemini. Answers are delivered via clipboard, automated typing, or floating transparent overlays. Perfect for coding, conceptual questions, MCQs, and interview preparation.
 
 ---
 
-## 🛠️ Setup (all versions)
+## 🛠️ Setup
 
 ### 1. Install dependencies
 ```bash
-pip install google-genai pynput mss Pillow pyperclip python-dotenv sounddevice pyaudiowpatch numpy scipy
+pip install -r requirements.txt
 ```
-*Note: `pyaudiowpatch` and `sounddevice` are required for the "Full Control" audio features.*
+*(Includes `google-genai`, `pynput`, `mss`, `Pillow`, `pyperclip`, `sounddevice`, `pyaudiowpatch`, `pyinstaller`)*
 
 ### 2. Configure Environment
-Create a `.env` file in the root project folder:
+Create a `.env` file in the root project folder containing your free Gemini API key:
 ```text
 GEMINI_API_KEY=your-key-here
 ```
-Get a free key at [Google AI Studio](https://aistudio.google.com/app/apikey).
+*(Get a free key at [Google AI Studio](https://aistudio.google.com/app/apikey))*
 
-### 3. Run
-You can run the watcher (restarts on save):
+### 3. Run the Desktop App
 ```bash
-python run.py
+python main.py
 ```
-Or run a specific version directly (e.g., `python AutoType.py`).
+This opens the sleek, dark-mode **Launcher UI**. From here, you can:
+1. Select the specific AI agent you want to run (e.g., Clipboard, AutoType, Real-Time Transcript).
+2. Configure **Settings** (hotkeys, typing speeds, overlay colors & transparency).
+3. Click **Launch** to start the listener in the background.
+
+### 4. Build a Standalone Executable (Optional)
+Don't want to run from terminal every time? Build a `.exe`:
+```bash
+python build.py
+```
+This drops a standalone `DontCheat.exe` into the `dist/` folder. You can pin it to your taskbar!
 
 ---
 
-## 📋 Version 1 — Clipboard
-**File:** `ClipboardCopy.py`
+## 🤖 Available Agents
 
+The v2.0 architecture combines all 6 legacy scripts into a single unified app. Every agent supports model fallbacks (`Flash -> Pro -> Flash Lite`), customizable hotkeys, and config persistence.
+
+### 1. Clipboard Copy
 Captures screenshots and copies the AI-generated code directly to your clipboard.
-- **Goal:** Fastest way to get code snippets for pasting.
-- **Multi-Model Fallback:** Automatically tries Flash → Pro → Flash Lite if one fails.
+- **Goal:** Fastest way to get raw code snippets for pasting.
 
-| Hotkey  | Action                                |
-| ------- | ------------------------------------- |
-| `k + ,` | Add current screenshot to queue       |
-| `k + .` | Send all queued screenshots to Gemini |
-| `k + /` | Clear the queue                       |
-
----
-
-## ⌨️ Version 2 — Auto-Type
-**File:** `AutoType.py`
-
+### 2. Auto-Type
 Simulates human-like typing to enter code character-by-character.
 - **Bypasses:** Sites that block `Ctrl+V` (e.g., HackerRank, LeetCode).
-- **Multi-Model Fallback:** Automatically tries Flash → Pro → Flash Lite if one fails.
-- **Smart Formatting:** Normalizes indentation to 4 spaces and removes comments/markdown.
+- **Features:** Start / Stop / Pause hotkeys. Smart indentation formatting.
 
-| Hotkey  | Action                                |
-| ------- | ------------------------------------- |
-| `k + ,` | Add screenshot to queue               |
-| `k + .` | Start processing queue                |
-| `k + /` | Clear queue                           |
-| `a + s` | **Pause / Resume** typing (or press `Esc`) |
-| `k + x` | **Abort** typing immediately          |
-
----
-
-## 🧠 Version 3 — General Purpose
-**File:** `general.py`
-
-An adaptive version that detects the question type and responds accordingly.
-- **Multi-Model Fallback:** Automatically tries Flash → Pro → Flash Lite if one fails.
+### 3. General AI
+An adaptive tool that detects the question type and auto-types the response.
 - **Coding:** Returns raw executable code.
-- **MCQ:** Returns correct option + brief reason.
-- **Theory:** Concise summary.
-- **Math:** Step-by-step solution.
+- **Theory / Math:** Types the step-by-step solution.
+
+### 4. MCQ AI
+Specialized for Multiple Choice Questions with a tiny, transparent, borderless overlay.
+- **Features:** Returns comma-separated options (`A,C`) if multiple answers are correct. Completely invisible to screen recording/sharing software.
+
+### 5. Multi-File Auto-Type
+Specialized for **Low-Level Design (LLD)** and multi-file coding workflows.
+- **Workflow:** Gemini generates logic for multiple files. The tool types a summary, and you advance through typing each file sequence using the `Next File` hotkey.
+
+### 6. Full Control (Interview Mode)
+The most advanced overlay, featuring an interactive markdown chat, memory, and mic/system audio capabilities.
+- **Features:** Hold a hotkey to record your mic, or toggle the system audio listener to transcribe what an interviewer is saying. Follow up directly in the chat box.
+
+### 7. Real-Time Transcript
+Always-on dual-stream audio capture (Mic + System Audio).
+- **Features:** Builds a silent real-time transcript in the background. Press the query hotkey to instantly analyze the transcript history and answer the interviewer's most recent question in the overlay.
 
 ---
 
-## 🎯 Version 4 — MCQ Optimized
-**File:** `mcq/main.py`
-
-Specialized for Multiple Choice Questions with a tiny, persistent overlay.
-- **Invisible:** Overlay is hidden from screenshots and screen sharing.
-- **Multi-Question Support:** Handles multiple MCQs in one screenshot by separating answers with a pipe (`|`).
-- **Multi-Answer Support:** Returns comma-separated options (e.g., `A,C`) if a single question has multiple correct answers.
-- **Single-Char:** Returns just the option for standard questions.
-- **Multi-Model Fallback:** Automatically tries Flash → Pro → Flash Lite if one fails.
-
-| Hotkey  | Action                                   |
-| ------- | ---------------------------------------- |
-| `k + ,` | Add MCQ screenshot                       |
-| `k + .` | Send to Gemini → Update overlay answer   |
-| `m + n` | Toggle overlay visibility (Hide / Show)  |
-
----
-
-## 👑 Version 5 — Full Control / Interviewer Mode
-**File:** `full Control/main.py`
-
-The most advanced version, featuring a floating Markdown overlay, conversation memory, and audio capabilities.
-- **Interactive:** Follow-up on previous questions via built-in chat UI.
-- **Conversation Memory:** Remembers the last 10 turns for context.
-- **Multi-Model Fallback:** Automatically tries Flash → Pro → Flash Lite for screenshots, follow-ups, AND audio transcription.
-- **Audio (Mic):** Hold the microphone button to record your voice; release to transcribe and ask Gemini.
-- **Interviewer Mode:** Listen to system audio (Transcribes what you hear, e.g., an interviewer speaking) and automatically suggests answers.
-
-| Hotkey  | Action                                       |
-| ------- | -------------------------------------------- |
-| `k + ,` | Add screenshot to context                    |
-| `k + .` | Send context to Gemini                       |
-| `k + c` | **Clear Memory** and Chat history            |
-| `k + t` | Display test content (Verify UI)             |
-| `m + n` | Toggle overlay visibility                    |
-| 🎤 Button| Hold to Record / Release to Send             |
-| 🔊 Button| Toggle System Audio (Interviewer) Listener   |
-
----
-
-## 📂 Version 6 — Multi-File Auto-Type
-**File:** `multifile_autotype.py`
-
-Specialized for **Low-Level Design (LLD)** and multi-file coding tasks. It coordinates the creation of several files in sequence.
-- **Workflow:** 
-    1. Queues screenshots of the problem statement.
-    2. Gemini generates a code solution split by `###FILE: filename` markers.
-    3. The tool types a summary of files to be created.
-    4. You create/open each file in your IDE, then press `k + n` to type the code into that file.
-- **Features:** Automated indentation (4 spaces), comment stripping for "clean" code, and re-typing support.
-
-| Hotkey  | Action                                |
-| ------- | ------------------------------------- |
-| `k + ,` | Add screenshot to queue               |
-| `k + .` | Send to Gemini & start typing sequence|
-| `k + n` | **Next File**: Start typing current file (Click into file first!) |
-| `k + r` | **Re-type**: Restart typing the last batch of files |
-| `k + /` | Clear queue                           |
-| `a + s` | **Pause / Resume** typing (or press `Esc`) |
-| `k + x` | **Stop** everything immediately       |
-
----
-
-## 📊 Quick Comparison
-
-| Feature                      | Clipboard | Auto-Type | General | MCQ | Full Control | Multi-File |
-| ---------------------------- | --------- | --------- | ------- | --- | ------------ | ---------- |
-| Output Method                | Clipboard | Typing    | Typing  | Overlay | Overlay      | Typing     |
-| Invisible to Screenshots     | ❌         | ✅         | ❌       | ✅   | ✅            | ✅          |
-| Multi-Model Fallback         | ✅         | ✅         | ✅       | ✅   | ✅            | ✅          |
-| Multi-File Support           | ❌         | ❌         | ❌       | ❌   | ❌            | ✅          |
-| Follow-up Questions          | ❌         | ❌         | ❌       | ❌   | ✅            | ❌          |
-| Best For                     | Quick Copy| Paste Blocked| Any     | Exams| Interviews    | LLD / Proj |
-
----
+## ⚙️ Customization (settings.json)
+All customizations are done via the built-in **Settings** panel in the Launcher GUI.
+Changes are saved to `settings.json` locally and remembered forever.
+- Rebind any hotkey.
+- Change typing simulator speeds.
+- Change overlay transparency (alpha), background color, text color, and accent color.
+- Re-order Gemini model fallbacks.
 
 ## ⚠️ Disclaimer
 This tool is for educational and accessibility purposes only. Please adhere to the academic integrity policies of your institution or organization.
-
