@@ -54,12 +54,27 @@ class SettingsPanel:
         self._build(parent_frame)
 
     def _build(self, parent: tk.Frame) -> None:
-        container = tk.Frame(parent, bg=BG2)
-        container.pack(fill="both", expand=True, padx=16, pady=12)
+        # Main container
+        self.container = tk.Frame(parent, bg=BG2)
+        self.container.pack(fill="both", expand=True, padx=16, pady=12)
 
         # Title
-        tk.Label(container, text="⚙  Settings", bg=BG2, fg=ACC,
+        tk.Label(self.container, text="⚙  Settings", bg=BG2, fg=ACC,
                  font=("Segoe UI", 13, "bold")).pack(anchor="w", pady=(0, 8))
+
+        # Footer for Save Button - Packed first at bottom to ensure visibility
+        footer = tk.Frame(self.container, bg=BG2)
+        footer.pack(side="bottom", fill="x", pady=(12, 0))
+
+        save_btn = tk.Label(footer, text="  💾  Save Settings  ", bg=ACC, fg="#fff",
+                            font=("Segoe UI", 10, "bold"), cursor="hand2", pady=8, padx=20)
+        save_btn.pack(pady=5)
+        save_btn.bind("<Button-1>", lambda e: self._save())
+        save_btn.bind("<Enter>",    lambda e: save_btn.config(bg="#9b8fff"))
+        save_btn.bind("<Leave>",    lambda e: save_btn.config(bg=ACC))
+
+        # Horizontal line above footer
+        tk.Frame(footer, bg="#1a1a30", height=1).pack(side="top", fill="x", pady=(0, 10))
 
         # Tabs
         style = ttk.Style()
@@ -70,29 +85,52 @@ class SettingsPanel:
         style.map("TNotebook.Tab",          background=[("selected", ACC)],
                   foreground=[("selected", "#ffffff")])
 
-        nb = ttk.Notebook(container)
-        nb.pack(fill="both", expand=True)
+        self._nb = ttk.Notebook(self.container)
+        self._nb.pack(fill="both", expand=True)
 
-        self._tab_hotkeys(nb)
-        self._tab_overlay(nb)
-        self._tab_typing(nb)
-        self._tab_audio(nb)
-        self._tab_models(nb)
+        self._tab_hotkeys(self._nb)
+        self._tab_overlay(self._nb)
+        self._tab_typing(self._nb)
+        self._tab_audio(self._nb)
+        self._tab_models(self._nb)
 
-        # Save button
-        save_btn = tk.Label(container, text="  💾  Save Settings  ", bg=ACC, fg="#fff",
-                            font=("Segoe UI", 10, "bold"), cursor="hand2", pady=6)
-        save_btn.pack(pady=(12, 0))
-        save_btn.bind("<Button-1>", lambda e: self._save())
-        save_btn.bind("<Enter>",    lambda e: save_btn.config(bg="#9b8fff"))
-        save_btn.bind("<Leave>",    lambda e: save_btn.config(bg=ACC))
+    def _make_scrollable_frame(self, parent: tk.Frame) -> tk.Frame:
+        """Helper to create a scrollable frame within a tab."""
+        canvas = tk.Canvas(parent, bg=BG2, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(parent, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg=BG2)
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        # Bind mousewheel to canvas and its children
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+
+        # Create window with a width that fits the detail panel
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw", width=540)
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        return scrollable_frame
 
     def _make_tab(self, nb: ttk.Notebook, title: str) -> tk.Frame:
         frame = tk.Frame(nb, bg=BG2)
         nb.add(frame, text=title)
-        inner = tk.Frame(frame, bg=BG2)
-        inner.pack(fill="both", expand=True, padx=10, pady=8)
-        return inner
+        
+        # Add scrollable inner frame
+        inner = self._make_scrollable_frame(frame)
+        
+        # Add some padding inside the scrollable frame
+        container_inner = tk.Frame(inner, bg=BG2, padx=10, pady=8)
+        container_inner.pack(fill="both", expand=True)
+        return container_inner
 
     def _row(self, parent, label, var_key, default):
         row = tk.Frame(parent, bg=BG2)
